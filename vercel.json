@@ -1,0 +1,21 @@
+{
+  "version": 2,
+  "buildCommand": "pnpm install && pnpm build",
+  "installCommand": "pnpm install --frozen-lockfile",
+  "ignoreCommand": "node scripts/vercel-ignore.js",
+  "env": {
+    "DATABASE_URL": "@database_url"
+  },
+  "functions": {
+    "apps/web/pages/api/**/*.ts": {
+      "runtime": "nodejs18.x"
+    }
+  },
+  "regions": ["cdg1"],
+  "git": {
+    "deploymentEnabled": {
+      "main": true,
+      "develop": true
+    }
+  }
+}

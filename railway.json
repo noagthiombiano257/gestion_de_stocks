@@ -1,0 +1,37 @@
+{
+  "$schema": "https://railway.app/railway.schema.json",
+  "services": {
+    "web": {
+      "build": {
+        "context": "./apps/web",
+        "dockerfile": "Dockerfile"
+      },
+      "deploy": {
+        "startCommand": "npm run start",
+        "restartPolicy": "always",
+        "port": 3000
+      },
+      "volumes": []
+    },
+    "backend": {
+      "build": {
+        "context": "./backend",
+        "dockerfile": "Dockerfile"
+      },
+      "deploy": {
+        "startCommand": "npm run start",
+        "restartPolicy": "always",
+        "port": 5000
+      },
+      "environment": {
+        "DATABASE_URL": "${{DATABASE_URL}}",
+        "NODE_ENV": "production"
+      }
+    }
+  },
+  "shared": {
+    "environment": {
+      "NODE_ENV": "production"
+    }
+  }
+}

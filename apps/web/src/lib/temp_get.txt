@@ -1,0 +1,8 @@
+// 3. Get all products (Newest First) 
+export async function getProducts() { 
+  try { 
+    return await db.query.products.findMany({ orderBy: (products, { desc }) => [desc(products.createdAt)] }); 
+  } catch (error) { 
+    return []; 
+  } 
+} 

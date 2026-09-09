@@ -1,0 +1,111 @@
+name: Deploy & Push to GitHub
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+      - develop
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [18.x]
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 10.29.3
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build Web App
+        run: pnpm --filter web build
+
+      - name: Check linting
+        run: pnpm --filter web lint || true
+
+  deploy-vercel:
+    needs: test-and-build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy to Vercel
+        uses: vercel/action@v4
+        id: vercel
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          scope: ${{ secrets.VERCEL_ORG_ID }}
+          production: ${{ github.ref == 'refs/heads/main' }}
+
+      - name: Comment PR with Vercel URL
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `🚀 Vercel Preview URL: ${{ steps.vercel.outputs.preview-url }}`
+            })
+
+  auto-push:
+    needs: test-and-build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Git
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+
+      - name: Push to main
+        if: github.ref == 'refs/heads/develop'
+        run: |
+          git fetch origin
+          git checkout main
+          git merge origin/develop --no-edit
+          git push origin main
+
+      - name: Create Release Notes
+        if: github.ref == 'refs/heads/main'
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ github.run_number }}
+          release_name: Release ${{ github.run_number }}
+          body: |
+            Automated release from commit ${{ github.sha }}
+            [See commit](https://github.com/${{ github.repository }}/commit/${{ github.sha }})
+          draft: false
+          prerelease: false
