@@ -84,7 +84,7 @@ export default function LoginPage() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="admin@shopflow.com"
+                  placeholder="jeannine.thiombiano@test.com"
                   required
                   className="login-input"
                 />
